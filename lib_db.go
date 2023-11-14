@@ -1,4 +1,4 @@
-package libdb
+package lib_db
 
 import (
 
@@ -23,6 +23,6 @@ const (
 
 func New(cfg *DBConfig) *DB {
 	return &DB{
-		
+
 	}
 }
