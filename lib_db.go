@@ -45,9 +45,9 @@ func New(cfg *DBConfig) (*DB, error) {
 	case PostgreSQL:
 		dbIntr = NewPostgreSQL(connectionString)
 	case SQLite:
-		dbIntr = NewSQLite(connectionString)		
+		dbIntr = NewSQLite(connectionString)
 	case Mock:
-		dbIntr = NewMock(connectionString)
+		dbIntr = NewMock()
 	default:
 		return nil, fmt.Errorf("Укажите driver, тип БД")
 	}
@@ -59,4 +59,8 @@ func New(cfg *DBConfig) (*DB, error) {
 	return &DB{
 		DBIntr: dbIntr,
 	}, nil
+}
+
+func (d *DB) Open() error {
+	return d.DBIntr.Open()
 }
