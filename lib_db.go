@@ -10,10 +10,10 @@ type DBResult []map[string]interface{}
 
 type DBInterface interface {
 	Open() error
-	Exec(query string, args ...interface{}) (*DBResult, error)
-	ExecWithTimeout(timeOut time.Duration, query string, args ...interface{}) (*DBResult, error)
-	QueryRow(query string, args ...interface{}) (*DBResult, error)
-	QueryRowWithTimeout(timeOut time.Duration, query string, args ...interface{}) (*DBResult, error)
+	Exec(txType int, query string, args ...interface{}) (*DBResult, error)
+	ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error)
+	QueryRow(txType int, query string, args ...interface{}) (*DBResult, error)
+	QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error)
 }
 
 type DB struct {
@@ -25,6 +25,8 @@ const (
 	PostgreSQL
 	SQLite
 	Mock
+	TxRead
+	TxWrite
 )
 
 func New(cfg *DBConfig) (*DB, error) {

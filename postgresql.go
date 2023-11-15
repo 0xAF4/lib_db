@@ -1,73 +1,57 @@
 package lib_db
 
-import "time"
+import (
+	"context"
+	"time"
+
+	"github.com/jackc/pgx/v4"
+)
 
 type DB_PostgreSQL struct {
+	db      map[int]*pgx.Conn
 	connStr string
 }
 
 func NewPostgreSQL(cStr string) *DB_PostgreSQL {
 	return &DB_PostgreSQL{
 		connStr: cStr,
+		db: map[int]*pgx.Conn{
+			TxRead:  nil,
+			TxWrite: nil,
+		},
 	}
 }
 
 func (d *DB_PostgreSQL) Open() error {
+	rdb, err := pgx.Connect(context.Background(), d.connStr)
+	if err != nil {
+		return err
+	}
+	d.db[TxRead] = rdb
+	defer rdb.Close(context.Background())
+
+	wdb, err := pgx.Connect(context.Background(), d.connStr)
+	if err != nil {
+		return err
+	}
+	d.db[TxWrite] = wdb
+	defer wdb.Close(context.Background())
+
 	return nil
 }
 
-func (d *DB_PostgreSQL) Exec(query string, args ...interface{}) (*DBResult, error) {
-	var result DBResult
-	rec1 := map[string]interface{}{
-		"exec_result": true,
-	}
-
-	result = append(result, rec1)
-	return &result, nil
+func (d *DB_PostgreSQL) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
+	return nil, nil
 }
 
-func (d *DB_PostgreSQL) ExecWithTimeout(timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
-	var result DBResult
-	rec1 := map[string]interface{}{
-		"exec_result": true,
-	}
-
-	result = append(result, rec1)
-	return &result, nil
+func (d *DB_PostgreSQL) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+	return nil, nil
 }
 
-func (d *DB_PostgreSQL) QueryRow(query string, args ...interface{}) (*DBResult, error) {
-	var result DBResult
-	rec1 := map[string]interface{}{
-		"username": "0xAF4",
-		"password": "pass123456789",
-		"role":     "admin",
-	}
-
-	rec2 := map[string]interface{}{
-		"username": "testUser",
-		"password": "testPassword",
-		"role":     "user",
-	}
-
-	result = append(result, rec1, rec2)
-	return &result, nil
+func (d *DB_PostgreSQL) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
+	return nil, nil
 }
 
-func (d *DB_PostgreSQL) QueryRowWithTimeout(timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
-	var result DBResult
-	rec1 := map[string]interface{}{
-		"username": "0xAF4",
-		"password": "pass123456789",
-		"role":     "admin",
-	}
-
-	rec2 := map[string]interface{}{
-		"username": "testUser",
-		"password": "testPassword",
-		"role":     "user",
-	}
-
-	result = append(result, rec1, rec2)
-	return &result, nil
+func (d *DB_PostgreSQL) QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+	return nil, nil
 }

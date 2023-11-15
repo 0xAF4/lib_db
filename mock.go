@@ -12,7 +12,7 @@ func (d *DB_Mock) Open() error {
 	return nil
 }
 
-func (d *DB_Mock) Exec(query string, args ...interface{}) (*DBResult, error) {
+func (d *DB_Mock) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
 	return &DBResult{
 		map[string]interface{}{
 			"exec_result": true,
@@ -20,11 +20,11 @@ func (d *DB_Mock) Exec(query string, args ...interface{}) (*DBResult, error) {
 	}, nil
 }
 
-func (d *DB_Mock) ExecWithTimeout(timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
-	return d.Exec(query, args...)
+func (d *DB_Mock) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+	return d.Exec(txType, query, args...)
 }
 
-func (d *DB_Mock) QueryRow(query string, args ...interface{}) (*DBResult, error) {
+func (d *DB_Mock) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
 	return &DBResult{
 		map[string]interface{}{
 			"username": "0xAF4",
@@ -39,6 +39,6 @@ func (d *DB_Mock) QueryRow(query string, args ...interface{}) (*DBResult, error)
 	}, nil
 }
 
-func (d *DB_Mock) QueryRowWithTimeout(timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
-	return d.QueryRow(query, args...)
+func (d *DB_Mock) QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+	return d.QueryRow(txType, query, args...)
 }

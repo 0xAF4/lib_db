@@ -16,7 +16,7 @@ func (d *DB_MSSQL) Open() error {
 	return nil
 }
 
-func (d *DB_MSSQL) Exec(query string, args ...interface{}) (*DBResult, error) {
+func (d *DB_MSSQL) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
 	var result DBResult
 	rec1 := map[string]interface{}{
 		"exec_result": true,
@@ -26,7 +26,7 @@ func (d *DB_MSSQL) Exec(query string, args ...interface{}) (*DBResult, error) {
 	return &result, nil
 }
 
-func (d *DB_MSSQL) ExecWithTimeout(timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+func (d *DB_MSSQL) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
 	var result DBResult
 	rec1 := map[string]interface{}{
 		"exec_result": true,
@@ -36,7 +36,7 @@ func (d *DB_MSSQL) ExecWithTimeout(timeOut time.Duration, query string, args ...
 	return &result, nil
 }
 
-func (d *DB_MSSQL) QueryRow(query string, args ...interface{}) (*DBResult, error) {
+func (d *DB_MSSQL) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
 	var result DBResult
 	rec1 := map[string]interface{}{
 		"username": "0xAF4",
@@ -54,7 +54,7 @@ func (d *DB_MSSQL) QueryRow(query string, args ...interface{}) (*DBResult, error
 	return &result, nil
 }
 
-func (d *DB_MSSQL) QueryRowWithTimeout(timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+func (d *DB_MSSQL) QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
 	var result DBResult
 	rec1 := map[string]interface{}{
 		"username": "0xAF4",

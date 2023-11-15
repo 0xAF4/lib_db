@@ -1,73 +1,87 @@
 package lib_db
 
-import "time"
+import (
+	"database/sql"
+	"fmt"
+	"log"
+	"time"
+
+	_ "github.com/mattn/go-sqlite3"
+)
 
 type DB_SQLite struct {
+	db      map[int]*sql.DB
 	connStr string
 }
 
 func NewSQLite(cStr string) *DB_SQLite {
 	return &DB_SQLite{
 		connStr: cStr,
+		db: map[int]*sql.DB{
+			TxRead:  nil,
+			TxWrite: nil,
+		},
 	}
 }
 
 func (d *DB_SQLite) Open() error {
+	rdb, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?mode=ro", d.connStr))
+	if err != nil {
+		return err
+	}
+	d.db[TxRead] = rdb
+	defer rdb.Close()
+
+	wdb, err := sql.Open("sqlite3", d.connStr)
+	if err != nil {
+		return err
+	}
+	d.db[TxWrite] = wdb
+	defer wdb.Close()
+
 	return nil
 }
 
-func (d *DB_SQLite) Exec(query string, args ...interface{}) (*DBResult, error) {
-	var result DBResult
-	rec1 := map[string]interface{}{
-		"exec_result": true,
-	}
-
-	result = append(result, rec1)
-	return &result, nil
+func (d *DB_SQLite) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
+	return nil, nil
 }
 
-func (d *DB_SQLite) ExecWithTimeout(timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
-	var result DBResult
-	rec1 := map[string]interface{}{
-		"exec_result": true,
-	}
-
-	result = append(result, rec1)
-	return &result, nil
+func (d *DB_SQLite) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+	return nil, nil
 }
 
-func (d *DB_SQLite) QueryRow(query string, args ...interface{}) (*DBResult, error) {
-	var result DBResult
-	rec1 := map[string]interface{}{
-		"username": "0xAF4",
-		"password": "pass123456789",
-		"role":     "admin",
+func (d *DB_SQLite) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
+	tx, err := d.db[txType].Begin()
+	if err != nil {
+		return nil, err
 	}
 
-	rec2 := map[string]interface{}{
-		"username": "testUser",
-		"password": "testPassword",
-		"role":     "user",
+	var rows *sql.Rows
+	rows, err = tx.Query(query, args...)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	defer rows.Close()
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
-	result = append(result, rec1, rec2)
-	return &result, nil
+	for rows.Next() {
+		var id int
+		var username, email string
+		err := rows.Scan(&id, &username, &email)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("ID: %d, Username: %s, Email: %s\n", id, username, email)
+	}
+
+	return nil, nil
 }
 
-func (d *DB_SQLite) QueryRowWithTimeout(timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
-	var result DBResult
-	rec1 := map[string]interface{}{
-		"username": "0xAF4",
-		"password": "pass123456789",
-		"role":     "admin",
-	}
-
-	rec2 := map[string]interface{}{
-		"username": "testUser",
-		"password": "testPassword",
-		"role":     "user",
-	}
-
-	result = append(result, rec1, rec2)
-	return &result, nil
+func (d *DB_SQLite) QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+	return nil, nil
 }
