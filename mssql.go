@@ -20,24 +20,14 @@ func (d *DB_MSSQL) Close() {
 	//Noop Close()
 }
 
-func (d *DB_MSSQL) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
-	var result DBResult
-	rec1 := map[string]interface{}{
-		"exec_result": true,
-	}
-
-	result = append(result, rec1)
-	return &result, nil
+func (d *DB_MSSQL) Exec(txType int, query string, args ...interface{}) (*string, error) {
+	s := "LastInsertId: 1; RowsAffected: 1;"
+	return &s, nil
 }
 
-func (d *DB_MSSQL) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
-	var result DBResult
-	rec1 := map[string]interface{}{
-		"exec_result": true,
-	}
-
-	result = append(result, rec1)
-	return &result, nil
+func (d *DB_MSSQL) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error) {
+	s := "LastInsertId: 1; RowsAffected: 1;"
+	return &s, nil
 }
 
 func (d *DB_MSSQL) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {

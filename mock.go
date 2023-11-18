@@ -16,15 +16,12 @@ func (d *DB_Mock) Close() {
 	//Noop Close()
 }
 
-func (d *DB_Mock) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
-	return &DBResult{
-		map[string]interface{}{
-			"exec_result": true,
-		},
-	}, nil
+func (d *DB_Mock) Exec(txType int, query string, args ...interface{}) (*string, error) {
+	s := "LastInsertId: 1; RowsAffected: 1;"
+	return &s, nil
 }
 
-func (d *DB_Mock) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+func (d *DB_Mock) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error) {
 	return d.Exec(txType, query, args...)
 }
 

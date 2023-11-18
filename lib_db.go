@@ -11,8 +11,8 @@ type DBResult []map[string]interface{}
 type DBInterface interface {
 	Close()
 	Open() error
-	Exec(txType int, query string, args ...interface{}) (*DBResult, error)
-	ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error)
+	Exec(txType int, query string, args ...interface{}) (*string, error)
+	ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error)
 	QueryRow(txType int, query string, args ...interface{}) (*DBResult, error)
 	QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error)
 }
@@ -73,11 +73,11 @@ func (d *DB) Close() {
 	d.DBIntr.Close()
 }
 
-func (d *DB) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
+func (d *DB) Exec(txType int, query string, args ...interface{}) (*string, error) {
 	return d.DBIntr.Exec(txType, query, args...)
 }
 
-func (d *DB) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+func (d *DB) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error) {
 	return d.DBIntr.ExecWithTimeout(txType, timeOut, query, args...)
 }
 

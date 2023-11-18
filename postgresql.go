@@ -52,11 +52,11 @@ func (d *DB_PostgreSQL) Close() {
 	}
 }
 
-func (d *DB_PostgreSQL) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
+func (d *DB_PostgreSQL) Exec(txType int, query string, args ...interface{}) (*string, error) {
 	return nil, nil
 }
 
-func (d *DB_PostgreSQL) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+func (d *DB_PostgreSQL) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error) {
 	return nil, nil
 }
 

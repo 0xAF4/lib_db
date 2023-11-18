@@ -54,14 +54,82 @@ func (d *DB_SQLite) Close() {
 	}
 }
 
-func (d *DB_SQLite) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
-	d.db[txType].Exec()
+func (d *DB_SQLite) Exec(txType int, query string, args ...interface{}) (*string, error) {
+	if d.db[txType] == nil {
+		if err := d.Open(); err != nil {
+			return nil, err
+		}
+	}
 
-	return nil, nil
+	tx, err := d.db[txType].Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := tx.Exec(query, args...)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	a, _ := res.LastInsertId()
+	b, _ := res.RowsAffected()
+
+	result := fmt.Sprintf("LastInsertId: %d; RowsAffected: %d;", a, b)
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
 
-func (d *DB_SQLite) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
-	return nil, nil
+func (d *DB_SQLite) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error) {
+	if d.db[txType] == nil {
+		if err := d.Open(); err != nil {
+			return nil, err
+		}
+	}
+
+	ctx := context.Background()
+	ctxTime, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
+
+	tx, err := d.db[txType].BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var res sql.Result
+	done := make(chan bool)
+
+	go func() {
+		res, err = tx.ExecContext(ctxTime, query, args...)
+		done <- true
+	}()
+
+	select {
+	case <-ctxTime.Done():
+		defer func() {
+			tx.Rollback()
+		}()
+		return nil, ctxTime.Err()
+	case <-done:
+		if err != nil {
+			defer func() {
+				tx.Rollback()
+			}()
+			return nil, err
+		} else {
+			defer func() {
+				tx.Commit()
+			}()
+			a, _ := res.LastInsertId()
+			b, _ := res.RowsAffected()
+			c := fmt.Sprintf("LastInsertId: %d; RowsAffected: %d;", a, b)
+			return &c, nil
+		}
+	}
 }
 
 func (d *DB_SQLite) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
@@ -75,7 +143,7 @@ func (d *DB_SQLite) QueryRow(txType int, query string, args ...interface{}) (*DB
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var rows *sql.Rows
 	rows, err = tx.Query(query, args...)
 	if err != nil {
