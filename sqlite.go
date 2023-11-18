@@ -1,6 +1,7 @@
 package lib_db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -54,6 +55,8 @@ func (d *DB_SQLite) Close() {
 }
 
 func (d *DB_SQLite) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
+	d.db[txType].Exec()
+
 	return nil, nil
 }
 
@@ -72,7 +75,7 @@ func (d *DB_SQLite) QueryRow(txType int, query string, args ...interface{}) (*DB
 	if err != nil {
 		return nil, err
 	}
-
+	
 	var rows *sql.Rows
 	rows, err = tx.Query(query, args...)
 	if err != nil {
@@ -101,30 +104,45 @@ func (d *DB_SQLite) QueryRowWithTimeout(txType int, timeOut time.Duration, query
 		}
 	}
 
-	tx, err := d.db[txType].Begin()
+	ctx := context.Background()
+	ctxTime, cancel := context.WithTimeout(ctx, timeOut)
+	defer cancel()
+
+	tx, err := d.db[txType].BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	var rows *sql.Rows
-	rows, err = tx.Query(query, args...)
-	if err != nil {
-		tx.Rollback()
-		return nil, err
-	}
-	defer rows.Close()
+	done := make(chan bool)
 
-	result, err := d.rowsToMaps(rows)
-	if err != nil {
-		return nil, err
-	}
+	go func() {
+		rows, err = tx.QueryContext(ctxTime, query, args...)
+		done <- true
+	}()
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
+	select {
+	case <-ctxTime.Done():
+		defer func() {
+			rows.Close()
+			tx.Rollback()
+		}()
+		return nil, ctxTime.Err()
+	case <-done:
+		if err != nil {
+			defer func() {
+				rows.Close()
+				tx.Rollback()
+			}()
+			return nil, err
+		} else {
+			defer func() {
+				rows.Close()
+				tx.Commit()
+			}()
+			return d.rowsToMaps(rows)
+		}
 	}
-
-	return result, nil
 }
 
 func (d *DB_SQLite) rowsToMaps(rows *sql.Rows) (*DBResult, error) {
