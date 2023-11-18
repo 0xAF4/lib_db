@@ -23,21 +23,33 @@ func NewPostgreSQL(cStr string) *DB_PostgreSQL {
 }
 
 func (d *DB_PostgreSQL) Open() error {
-	rdb, err := pgx.Connect(context.Background(), d.connStr)
-	if err != nil {
-		return err
+	if d.db[TxRead] == nil {
+		rdb, err := pgx.Connect(context.Background(), d.connStr)
+		if err != nil {
+			return err
+		}
+		d.db[TxRead] = rdb
 	}
-	d.db[TxRead] = rdb
-	defer rdb.Close(context.Background())
 
-	wdb, err := pgx.Connect(context.Background(), d.connStr)
-	if err != nil {
-		return err
+	if d.db[TxWrite] == nil {
+		wdb, err := pgx.Connect(context.Background(), d.connStr)
+		if err != nil {
+			return err
+		}
+		d.db[TxWrite] = wdb
 	}
-	d.db[TxWrite] = wdb
-	defer wdb.Close(context.Background())
 
 	return nil
+}
+
+func (d *DB_PostgreSQL) Close() {
+	if d.db[TxRead] == nil {
+		d.db[TxRead].Close(context.Background())
+	}
+
+	if d.db[TxWrite] == nil {
+		d.db[TxWrite].Close(context.Background())
+	}
 }
 
 func (d *DB_PostgreSQL) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {

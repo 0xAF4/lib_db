@@ -9,6 +9,7 @@ type DBConfig map[string]interface{}
 type DBResult []map[string]interface{}
 
 type DBInterface interface {
+	Close()
 	Open() error
 	Exec(txType int, query string, args ...interface{}) (*DBResult, error)
 	ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error)
@@ -25,6 +26,7 @@ const (
 	PostgreSQL
 	SQLite
 	Mock
+
 	TxRead
 	TxWrite
 )
@@ -65,4 +67,31 @@ func New(cfg *DBConfig) (*DB, error) {
 
 func (d *DB) Open() error {
 	return d.DBIntr.Open()
+}
+
+func (d *DB) Close() {
+	d.DBIntr.Close()
+}
+
+func (d *DB) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
+	return d.DBIntr.Exec(txType, query, args...)
+}
+
+func (d *DB) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+	return d.DBIntr.ExecWithTimeout(txType, timeOut, query, args...)
+}
+
+func (d *DB) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
+	return d.DBIntr.QueryRow(txType, query, args...)
+}
+
+func (d *DB) QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+	return d.DBIntr.QueryRowWithTimeout(txType, timeOut, query, args...)
+}
+
+func (r *DBResult) Count() int {
+	if r == nil {
+		return 0
+	}
+	return len(*r)
 }

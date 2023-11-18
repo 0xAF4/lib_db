@@ -16,6 +16,10 @@ func (d *DB_MSSQL) Open() error {
 	return nil
 }
 
+func (d *DB_MSSQL) Close() {
+	//Noop Close()
+}
+
 func (d *DB_MSSQL) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
 	var result DBResult
 	rec1 := map[string]interface{}{

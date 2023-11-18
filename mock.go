@@ -12,6 +12,10 @@ func (d *DB_Mock) Open() error {
 	return nil
 }
 
+func (d *DB_Mock) Close() {
+	//Noop Close()
+}
+
 func (d *DB_Mock) Exec(txType int, query string, args ...interface{}) (*DBResult, error) {
 	return &DBResult{
 		map[string]interface{}{
