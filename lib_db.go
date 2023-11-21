@@ -35,7 +35,10 @@ const (
 )
 
 func New(cfg *DBConfig) (*DB, error) {
-	var dbIntr DBInterface
+	var (
+		dbIntr DBInterface
+		ilog   *log.Logger
+	)
 
 	driver, ok := (*cfg)["driver"].(int)
 	if !ok {
@@ -44,6 +47,11 @@ func New(cfg *DBConfig) (*DB, error) {
 	connectionString, ok := (*cfg)["connectionString"].(string)
 	if !ok {
 		return nil, fmt.Errorf("Укажите строку подключения connectionString")
+	}
+
+	file, ok := (*cfg)["logFile"].(*os.File)
+	if ok {
+		ilog = log.New(file, "[DATABASE] ", log.Ldate|log.Lmicroseconds)
 	}
 
 	switch driver {
@@ -65,7 +73,7 @@ func New(cfg *DBConfig) (*DB, error) {
 
 	return &DB{
 		DBIntr: dbIntr,
-		log:    log.New((*cfg)["logFile"].(*os.File), "[DATABASE] ", log.Ldate|log.Lmicroseconds),
+		log:    ilog,
 	}, nil
 }
 
