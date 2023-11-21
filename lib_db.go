@@ -2,6 +2,8 @@ package lib_db
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"time"
 )
 
@@ -18,6 +20,7 @@ type DBInterface interface {
 }
 
 type DB struct {
+	log    *log.Logger
 	DBIntr DBInterface
 }
 
@@ -62,6 +65,7 @@ func New(cfg *DBConfig) (*DB, error) {
 
 	return &DB{
 		DBIntr: dbIntr,
+		log:    log.New((*cfg)["logFile"].(*os.File), "[DATABASE] ", log.Ldate|log.Lmicroseconds),
 	}, nil
 }
 
@@ -74,18 +78,30 @@ func (d *DB) Close() {
 }
 
 func (d *DB) Exec(txType int, query string, args ...interface{}) (*string, error) {
+	if d.log != nil {
+		d.log.Printf("Exec: \"%s\", Args: \"%v\", TxType: %d", query, args, txType)
+	}
 	return d.DBIntr.Exec(txType, query, args...)
 }
 
 func (d *DB) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error) {
+	if d.log != nil {
+		d.log.Printf("ExecWithTimeout: \"%s\", Args: \"%v\", TxType: %d", query, args, txType)
+	}
 	return d.DBIntr.ExecWithTimeout(txType, timeOut, query, args...)
 }
 
 func (d *DB) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
+	if d.log != nil {
+		d.log.Printf("QueryRow: \"%s\", Args: \"%v\", TxType: %d", query, args, txType)
+	}
 	return d.DBIntr.QueryRow(txType, query, args...)
 }
 
 func (d *DB) QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+	if d.log != nil {
+		d.log.Printf("QueryRowWithTimeout: \"%s\", Args: \"%v\", TxType: %d", query, args, txType)
+	}
 	return d.DBIntr.QueryRowWithTimeout(txType, timeOut, query, args...)
 }
 
