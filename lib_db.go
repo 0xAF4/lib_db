@@ -17,6 +17,8 @@ type DBInterface interface {
 	ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error)
 	QueryRow(txType int, query string, args ...interface{}) (*DBResult, error)
 	QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error)
+
+	StartTx(txType int) (interface{}, error)
 }
 
 type DB struct {
@@ -83,6 +85,10 @@ func (d *DB) Open() error {
 
 func (d *DB) Close() {
 	d.DBIntr.Close()
+}
+
+func (d *DB) StartTx(txType int) (interface{}, error) {
+	return d.DBIntr.StartTx(txType)
 }
 
 func (d *DB) Exec(txType int, query string, args ...interface{}) (*string, error) {

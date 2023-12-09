@@ -54,6 +54,10 @@ func (d *DB_SQLite) Close() {
 	}
 }
 
+func (d *DB_SQLite) StartTx(txType int) (interface{}, error) {
+	return d.db[txType].Begin()
+}
+
 func (d *DB_SQLite) Exec(txType int, query string, args ...interface{}) (*string, error) {
 	if d.db[txType] == nil {
 		if err := d.Open(); err != nil {

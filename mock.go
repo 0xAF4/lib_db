@@ -1,6 +1,8 @@
 package lib_db
 
-import "time"
+import (
+	"time"
+)
 
 type DB_Mock struct{}
 
@@ -14,6 +16,10 @@ func (d *DB_Mock) Open() error {
 
 func (d *DB_Mock) Close() {
 	//Noop Close()
+}
+
+func (d *DB_Mock) StartTx(txType int) (interface{}, error) {
+	return nil, nil
 }
 
 func (d *DB_Mock) Exec(txType int, query string, args ...interface{}) (*string, error) {

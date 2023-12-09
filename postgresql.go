@@ -53,6 +53,10 @@ func (d *DB_PostgreSQL) Close() {
 	}
 }
 
+func (d *DB_PostgreSQL) StartTx(txType int) (interface{}, error) {
+	return d.db[txType].Begin(context.Background())
+}
+
 func (d *DB_PostgreSQL) Exec(txType int, query string, args ...interface{}) (*string, error) {
 	if d.db[txType] == nil {
 		if err := d.Open(); err != nil {

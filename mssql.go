@@ -54,6 +54,10 @@ func (d *DB_MSSQL) Close() {
 	}
 }
 
+func (d *DB_MSSQL) StartTx(txType int) (interface{}, error) {
+	return d.db[txType].Begin()
+}
+
 func (d *DB_MSSQL) Exec(txType int, query string, args ...interface{}) (*string, error) {
 	if d.db[txType] == nil {
 		if err := d.Open(); err != nil {
