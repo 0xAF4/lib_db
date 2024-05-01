@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -35,6 +36,18 @@ const (
 	TxRead
 	TxWrite
 )
+
+func StrToDBType(s string) int {
+	switch strings.ToUpper(s) {
+	case "MSSQL", "MICROSOFT SQL SERVER":
+		return MSSQL
+	case "POSTGRESQL":
+		return PostgreSQL
+	case "SQLITE":
+		return SQLite
+	}
+	return Mock
+}
 
 func New(cfg *DBConfig) (*DB, error) {
 	var (
