@@ -197,5 +197,9 @@ func (d *DB_PostgreSQL) rowsToMap(rows pgx.Rows) (*DBResult, error) {
 		result = append(result, rowMap)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return &result, nil
 }
