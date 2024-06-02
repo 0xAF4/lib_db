@@ -44,12 +44,14 @@ func (d *DB_PostgreSQL) Open() error {
 }
 
 func (d *DB_PostgreSQL) Close() {
-	if d.db[TxRead] == nil {
+	if d.db[TxRead] != nil {
 		d.db[TxRead].Close(context.Background())
+		d.db[TxRead] = nil
 	}
 
-	if d.db[TxWrite] == nil {
+	if d.db[TxWrite] != nil {
 		d.db[TxWrite].Close(context.Background())
+		d.db[TxWrite] = nil
 	}
 }
 
@@ -114,10 +116,9 @@ func (d *DB_PostgreSQL) ExecWithTimeout(txType int, timeOut time.Duration, query
 }
 
 func (d *DB_PostgreSQL) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
-	if d.db[txType] == nil {
-		if err := d.Open(); err != nil {
-			return nil, err
-		}
+	// Проверяем соединение и восстанавливаем его при необходимости
+	if err := d.ensureConnection(txType); err != nil {
+		return nil, err
 	}
 
 	rows, err := d.db[txType].Query(context.Background(), query, args...)
@@ -128,10 +129,9 @@ func (d *DB_PostgreSQL) QueryRow(txType int, query string, args ...interface{}) 
 }
 
 func (d *DB_PostgreSQL) QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
-	if d.db[txType] == nil {
-		if err := d.Open(); err != nil {
-			return nil, err
-		}
+	// Проверяем соединение и восстанавливаем его при необходимости
+	if err := d.ensureConnection(txType); err != nil {
+		return nil, err
 	}
 
 	ctx := context.Background()
@@ -202,4 +202,19 @@ func (d *DB_PostgreSQL) rowsToMap(rows pgx.Rows) (*DBResult, error) {
 	}
 
 	return &result, nil
+}
+
+// Новый метод для проверки соединения и реконнекта
+func (d *DB_PostgreSQL) ensureConnection(txType int) error {
+	if d.db[txType] != nil {
+		// Проверяем текущее состояние соединения
+		if err := d.db[txType].Ping(context.Background()); err == nil {
+			return nil
+		}
+		// Закрываем старое невалидное соединение
+		d.db[txType].Close(context.Background())
+		d.db[txType] = nil
+	}
+	// Пытаемся установить новое соединение
+	return d.Open()
 }
