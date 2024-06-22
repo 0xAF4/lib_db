@@ -56,6 +56,9 @@ func (d *DB_PostgreSQL) Close() {
 }
 
 func (d *DB_PostgreSQL) StartTx(txType int) (interface{}, error) {
+	if err := d.ensureConnection(txType); err != nil {
+		return nil, err
+	}
 	return d.db[txType].Begin(context.Background())
 }
 
