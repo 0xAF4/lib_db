@@ -60,10 +60,8 @@ func (d *DB_PostgreSQL) StartTx(txType int) (interface{}, error) {
 }
 
 func (d *DB_PostgreSQL) Exec(txType int, query string, args ...interface{}) (*string, error) {
-	if d.db[txType] == nil {
-		if err := d.Open(); err != nil {
-			return nil, err
-		}
+	if err := d.ensureConnection(txType); err != nil {
+		return nil, err
 	}
 
 	coma, err := d.db[txType].Exec(context.Background(), query, args...)
@@ -72,10 +70,8 @@ func (d *DB_PostgreSQL) Exec(txType int, query string, args ...interface{}) (*st
 }
 
 func (d *DB_PostgreSQL) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error) {
-	if d.db[txType] == nil {
-		if err := d.Open(); err != nil {
-			return nil, err
-		}
+	if err := d.ensureConnection(txType); err != nil {
+		return nil, err
 	}
 
 	ctx := context.Background()
