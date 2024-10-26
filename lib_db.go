@@ -32,6 +32,7 @@ const (
 	PostgreSQL
 	SQLite
 	Mock
+	FireBird
 
 	TxRead
 	TxWrite
@@ -45,6 +46,8 @@ func StrToDBType(s string) int {
 		return PostgreSQL
 	case "SQLITE":
 		return SQLite
+	case "FIREBIRD":
+		return FireBird
 	}
 	return Mock
 }
@@ -76,6 +79,8 @@ func New(cfg *DBConfig) (*DB, error) {
 		dbIntr = NewPostgreSQL(connectionString)
 	case SQLite:
 		dbIntr = NewSQLite(connectionString)
+	case FireBird:
+		dbIntr = NewFireBird(connectionString)
 	case Mock:
 		dbIntr = NewMock()
 	default:

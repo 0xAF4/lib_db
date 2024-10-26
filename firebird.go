@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/denisenkom/go-mssqldb"
+	_ "github.com/nakagami/firebirdsql"
 )
 
-type DB_MSSQL struct {
+type DB_FireBird struct {
 	db      map[int]*sql.DB
 	connStr string
 }
 
-func NewMSSQL(cStr string) *DB_MSSQL {
-	return &DB_MSSQL{
+func NewFireBird(cStr string) *DB_FireBird {
+	return &DB_FireBird{
 		connStr: cStr,
 		db: map[int]*sql.DB{
 			TxRead:  nil,
@@ -24,9 +24,9 @@ func NewMSSQL(cStr string) *DB_MSSQL {
 	}
 }
 
-func (d *DB_MSSQL) Open() error {
+func (d *DB_FireBird) Open() error {
 	if d.db[TxRead] == nil {
-		rdb, err := sql.Open("sqlserver", fmt.Sprintf("application intent=readonly;%s", d.connStr))
+		rdb, err := sql.Open("firebirdsql", d.connStr)
 		if err != nil {
 			return err
 		}
@@ -34,7 +34,7 @@ func (d *DB_MSSQL) Open() error {
 	}
 
 	if d.db[TxWrite] == nil {
-		wdb, err := sql.Open("sqlserver", fmt.Sprintf("application intent=readwrite;%s", d.connStr))
+		wdb, err := sql.Open("firebirdsql", d.connStr)
 		if err != nil {
 			return err
 		}
@@ -44,7 +44,7 @@ func (d *DB_MSSQL) Open() error {
 	return nil
 }
 
-func (d *DB_MSSQL) Close() {
+func (d *DB_FireBird) Close() {
 	if d.db[TxRead] != nil {
 		d.db[TxRead].Close()
 	}
@@ -54,11 +54,7 @@ func (d *DB_MSSQL) Close() {
 	}
 }
 
-func (d *DB_MSSQL) StartTx(txType int) (interface{}, error) {
-	return d.db[txType].Begin()
-}
-
-func (d *DB_MSSQL) Exec(txType int, query string, args ...interface{}) (*string, error) {
+func (d *DB_FireBird) Exec(txType int, query string, args ...interface{}) (*string, error) {
 	if d.db[txType] == nil {
 		if err := d.Open(); err != nil {
 			return nil, err
@@ -88,7 +84,7 @@ func (d *DB_MSSQL) Exec(txType int, query string, args ...interface{}) (*string,
 	return &result, nil
 }
 
-func (d *DB_MSSQL) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error) {
+func (d *DB_FireBird) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error) {
 	if d.db[txType] == nil {
 		if err := d.Open(); err != nil {
 			return nil, err
@@ -136,7 +132,7 @@ func (d *DB_MSSQL) ExecWithTimeout(txType int, timeOut time.Duration, query stri
 	}
 }
 
-func (d *DB_MSSQL) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
+func (d *DB_FireBird) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
 	if d.db[txType] == nil {
 		if err := d.Open(); err != nil {
 			return nil, err
@@ -169,7 +165,7 @@ func (d *DB_MSSQL) QueryRow(txType int, query string, args ...interface{}) (*DBR
 	return result, nil
 }
 
-func (d *DB_MSSQL) QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
+func (d *DB_FireBird) QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
 	if d.db[txType] == nil {
 		if err := d.Open(); err != nil {
 			return nil, err
@@ -217,7 +213,11 @@ func (d *DB_MSSQL) QueryRowWithTimeout(txType int, timeOut time.Duration, query 
 	}
 }
 
-func (d *DB_MSSQL) rowsToMaps(rows *sql.Rows) (*DBResult, error) {
+func (d *DB_FireBird) StartTx(txType int) (interface{}, error) {
+	return d.db[txType].Begin()
+}
+
+func (d *DB_FireBird) rowsToMaps(rows *sql.Rows) (*DBResult, error) {
 
 	columns, err := rows.Columns()
 	if err != nil {
