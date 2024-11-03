@@ -1,249 +1,54 @@
 package lib_db
 
 import (
-	"context"
-	"database/sql"
-	"fmt"
+	fb "lib_db/fb"
 	"time"
 
 	_ "github.com/nakagami/firebirdsql"
 )
 
 type DB_FireBird struct {
-	db      map[int]*sql.DB
-	connStr string
+	db   *fb.Database
+	conn *fb.Connection
 }
 
 func NewFireBird(cStr string) *DB_FireBird {
+	db, _ := fb.New("database=" + cStr)
 	return &DB_FireBird{
-		connStr: cStr,
-		db: map[int]*sql.DB{
-			TxRead:  nil,
-			TxWrite: nil,
-		},
+		db: db,
 	}
 }
 
 func (d *DB_FireBird) Open() error {
-	if d.db[TxRead] == nil {
-		rdb, err := sql.Open("firebirdsql", d.connStr)
-		if err != nil {
-			return err
-		}
-		d.db[TxRead] = rdb
+	conn, err := d.db.Connect()
+	if err != nil {
+		return err
 	}
-
-	if d.db[TxWrite] == nil {
-		wdb, err := sql.Open("firebirdsql", d.connStr)
-		if err != nil {
-			return err
-		}
-		d.db[TxWrite] = wdb
-	}
-
+	d.conn = conn
 	return nil
 }
 
 func (d *DB_FireBird) Close() {
-	if d.db[TxRead] != nil {
-		d.db[TxRead].Close()
-	}
-
-	if d.db[TxWrite] != nil {
-		d.db[TxWrite].Close()
-	}
+	d.conn.Close()
 }
-
 func (d *DB_FireBird) Exec(txType int, query string, args ...interface{}) (*string, error) {
-	if d.db[txType] == nil {
-		if err := d.Open(); err != nil {
-			return nil, err
-		}
-	}
-
-	tx, err := d.db[txType].Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := tx.Exec(query, args...)
-	if err != nil {
-		tx.Rollback()
-		return nil, err
-	}
-
-	a, _ := res.LastInsertId()
-	b, _ := res.RowsAffected()
-
-	result := fmt.Sprintf("LastInsertId: %d; RowsAffected: %d;", a, b)
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	return &result, nil
+	_, err := d.conn.Execute(query, args...)
+	return nil, err
 }
 
 func (d *DB_FireBird) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error) {
-	if d.db[txType] == nil {
-		if err := d.Open(); err != nil {
-			return nil, err
-		}
-	}
-
-	ctx := context.Background()
-	ctxTime, cancel := context.WithTimeout(ctx, timeOut)
-	defer cancel()
-
-	tx, err := d.db[txType].BeginTx(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var res sql.Result
-	done := make(chan bool)
-
-	go func() {
-		res, err = tx.ExecContext(ctxTime, query, args...)
-		done <- true
-	}()
-
-	select {
-	case <-ctxTime.Done():
-		defer func() {
-			tx.Rollback()
-		}()
-		return nil, ctxTime.Err()
-	case <-done:
-		if err != nil {
-			defer func() {
-				tx.Rollback()
-			}()
-			return nil, err
-		} else {
-			defer func() {
-				tx.Commit()
-			}()
-			a, _ := res.LastInsertId()
-			b, _ := res.RowsAffected()
-			c := fmt.Sprintf("LastInsertId: %d; RowsAffected: %d;", a, b)
-			return &c, nil
-		}
-	}
+	return d.Exec(txType, query, args...)
 }
 
 func (d *DB_FireBird) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
-	if d.db[txType] == nil {
-		if err := d.Open(); err != nil {
-			return nil, err
-		}
-	}
-
-	tx, err := d.db[txType].Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	var rows *sql.Rows
-	rows, err = tx.Query(query, args...)
-	if err != nil {
-		tx.Rollback()
-		return nil, err
-	}
-	defer rows.Close()
-
-	result, err := d.rowsToMaps(rows)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	row, err := d.conn.QueryRowMaps(query)
+	return (*DBResult)(&row), err
 }
 
 func (d *DB_FireBird) QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
-	if d.db[txType] == nil {
-		if err := d.Open(); err != nil {
-			return nil, err
-		}
-	}
-
-	ctx := context.Background()
-	ctxTime, cancel := context.WithTimeout(ctx, timeOut)
-	defer cancel()
-
-	tx, err := d.db[txType].BeginTx(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var rows *sql.Rows
-	done := make(chan bool)
-
-	go func() {
-		rows, err = tx.QueryContext(ctxTime, query, args...)
-		done <- true
-	}()
-
-	select {
-	case <-ctxTime.Done():
-		defer func() {
-			rows.Close()
-			tx.Rollback()
-		}()
-		return nil, ctxTime.Err()
-	case <-done:
-		if err != nil {
-			defer func() {
-				rows.Close()
-				tx.Rollback()
-			}()
-			return nil, err
-		} else {
-			defer func() {
-				rows.Close()
-				tx.Commit()
-			}()
-			return d.rowsToMaps(rows)
-		}
-	}
+	return d.QueryRow(txType, query, args...)
 }
 
 func (d *DB_FireBird) StartTx(txType int) (interface{}, error) {
-	return d.db[txType].Begin()
-}
-
-func (d *DB_FireBird) rowsToMaps(rows *sql.Rows) (*DBResult, error) {
-
-	columns, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-
-	var result DBResult
-
-	values := make([]interface{}, len(columns))
-	for i := range values {
-		values[i] = new(interface{})
-	}
-
-	for rows.Next() {
-		err := rows.Scan(values...)
-		if err != nil {
-			return nil, err
-		}
-
-		rowMap := make(map[string]interface{})
-		for i, column := range columns {
-			rowMap[column] = *(values[i].(*interface{}))
-		}
-
-		result = append(result, rowMap)
-	}
-
-	return &result, nil
+	return nil, nil
 }
