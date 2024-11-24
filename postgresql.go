@@ -2,6 +2,7 @@ package lib_db
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgconn"
@@ -12,6 +13,8 @@ type DB_PostgreSQL struct {
 	db      map[int]*pgx.Conn
 	connStr string
 }
+
+var mu sync.Mutex
 
 func NewPostgreSQL(cStr string) *DB_PostgreSQL {
 	return &DB_PostgreSQL{
@@ -205,6 +208,8 @@ func (d *DB_PostgreSQL) rowsToMap(rows pgx.Rows) (*DBResult, error) {
 
 // Новый метод для проверки соединения и реконнекта
 func (d *DB_PostgreSQL) ensureConnection(txType int) error {
+	mu.Lock()
+	defer mu.Unlock()
 	if d.db[txType] != nil {
 		// Проверяем текущее состояние соединения
 		if err := d.db[txType].Ping(context.Background()); err == nil {
