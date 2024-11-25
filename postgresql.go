@@ -44,14 +44,14 @@ func (d *DB_PostgreSQL) Close() {
 }
 
 func (d *DB_PostgreSQL) StartTx(txType int) (interface{}, error) {
-	if err := d.ensureConnection(txType); err != nil {
+	if err := d.ensureConnection(); err != nil {
 		return nil, err
 	}
 	return d.db.Begin(context.Background())
 }
 
 func (d *DB_PostgreSQL) Exec(txType int, query string, args ...interface{}) (*string, error) {
-	if err := d.ensureConnection(txType); err != nil {
+	if err := d.ensureConnection(); err != nil {
 		return nil, err
 	}
 
@@ -61,7 +61,7 @@ func (d *DB_PostgreSQL) Exec(txType int, query string, args ...interface{}) (*st
 }
 
 func (d *DB_PostgreSQL) ExecWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*string, error) {
-	if err := d.ensureConnection(txType); err != nil {
+	if err := d.ensureConnection(); err != nil {
 		return nil, err
 	}
 
@@ -104,7 +104,7 @@ func (d *DB_PostgreSQL) ExecWithTimeout(txType int, timeOut time.Duration, query
 
 func (d *DB_PostgreSQL) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
 	// Проверяем соединение и восстанавливаем его при необходимости
-	if err := d.ensureConnection(txType); err != nil {
+	if err := d.ensureConnection(); err != nil {
 		return nil, err
 	}
 
@@ -117,7 +117,7 @@ func (d *DB_PostgreSQL) QueryRow(txType int, query string, args ...interface{}) 
 
 func (d *DB_PostgreSQL) QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
 	// Проверяем соединение и восстанавливаем его при необходимости
-	if err := d.ensureConnection(txType); err != nil {
+	if err := d.ensureConnection(); err != nil {
 		return nil, err
 	}
 
@@ -192,7 +192,7 @@ func (d *DB_PostgreSQL) rowsToMap(rows pgx.Rows) (*DBResult, error) {
 }
 
 // Новый метод для проверки соединения и реконнекта
-func (d *DB_PostgreSQL) ensureConnection(txType int) error {
+func (d *DB_PostgreSQL) ensureConnection() error {
 	mu.Lock()
 	defer mu.Unlock()
 	if d.db != nil {
