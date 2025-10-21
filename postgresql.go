@@ -2,6 +2,8 @@ package lib_db
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -11,8 +13,10 @@ import (
 )
 
 type DB_PostgreSQL struct {
-	db      *pgxpool.Pool
-	connStr string
+	db        *pgxpool.Pool
+	connStr   string
+	noticeLog *log.Logger
+	onNotice  func(notice *PgNotice)
 }
 
 var mu sync.Mutex
@@ -24,9 +28,29 @@ func NewPostgreSQL(cStr string) *DB_PostgreSQL {
 	}
 }
 
+// SetNoticeLogger устанавливает логгер для RAISE NOTICE
+func (d *DB_PostgreSQL) SetNoticeLogger(logger *log.Logger) {
+	d.noticeLog = logger
+}
+
+// SetNoticeHandler устанавливает кастомный обработчик для RAISE NOTICE
+func (d *DB_PostgreSQL) SetNoticeHandler(handler func(notice *PgNotice)) {
+	d.onNotice = handler
+}
+
 func (d *DB_PostgreSQL) Open() error {
 	if d.db == nil {
-		rdb, err := pgxpool.New(context.Background(), d.connStr)
+		config, err := pgxpool.ParseConfig(d.connStr)
+		if err != nil {
+			return err
+		}
+
+		// Настраиваем обработчик уведомлений
+		config.ConnConfig.OnNotice = func(pc *pgconn.PgConn, notice *pgconn.Notice) {
+			d.handleNotice(notice)
+		}
+
+		rdb, err := pgxpool.NewWithConfig(context.Background(), config)
 		if err != nil {
 			return err
 		}
@@ -34,6 +58,28 @@ func (d *DB_PostgreSQL) Open() error {
 	}
 
 	return nil
+}
+
+func (d *DB_PostgreSQL) handleNotice(notice *pgconn.Notice) {
+	// Если установлен кастомный обработчик, используем его
+	if d.onNotice != nil {
+		// convert pointer directly
+		nt := (*PgNotice)(notice)
+		d.onNotice(nt)
+		return
+	}
+
+	// Иначе используем логгер, если он установлен
+	if d.noticeLog != nil {
+		msg := fmt.Sprintf("[%s] %s", notice.Severity, notice.Message)
+		if notice.Detail != "" {
+			msg += fmt.Sprintf(" | Detail: %s", notice.Detail)
+		}
+		if notice.Hint != "" {
+			msg += fmt.Sprintf(" | Hint: %s", notice.Hint)
+		}
+		d.noticeLog.Println(msg)
+	}
 }
 
 func (d *DB_PostgreSQL) Close() {
@@ -103,7 +149,6 @@ func (d *DB_PostgreSQL) ExecWithTimeout(txType int, timeOut time.Duration, query
 }
 
 func (d *DB_PostgreSQL) QueryRow(txType int, query string, args ...interface{}) (*DBResult, error) {
-	// Проверяем соединение и восстанавливаем его при необходимости
 	if err := d.ensureConnection(); err != nil {
 		return nil, err
 	}
@@ -116,7 +161,6 @@ func (d *DB_PostgreSQL) QueryRow(txType int, query string, args ...interface{}) 
 }
 
 func (d *DB_PostgreSQL) QueryRowWithTimeout(txType int, timeOut time.Duration, query string, args ...interface{}) (*DBResult, error) {
-	// Проверяем соединение и восстанавливаем его при необходимости
 	if err := d.ensureConnection(); err != nil {
 		return nil, err
 	}
@@ -191,19 +235,15 @@ func (d *DB_PostgreSQL) rowsToMap(rows pgx.Rows) (*DBResult, error) {
 	return &result, nil
 }
 
-// Новый метод для проверки соединения и реконнекта
 func (d *DB_PostgreSQL) ensureConnection() error {
 	mu.Lock()
 	defer mu.Unlock()
 	if d.db != nil {
-		// Проверяем текущее состояние соединения
 		if err := d.db.Ping(context.Background()); err == nil {
 			return nil
 		}
-		// Закрываем старое невалидное соединение
 		d.db.Close()
 		d.db = nil
 	}
-	// Пытаемся установить новое соединение
 	return d.Open()
 }

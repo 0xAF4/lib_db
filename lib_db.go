@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type DBConfig map[string]interface{}
@@ -21,6 +23,23 @@ type DBInterface interface {
 
 	StartTx(txType int) (interface{}, error)
 }
+
+type PgNotice pgconn.Notice
+
+//Example
+// func Exec(notice *l_db.PgNotice) {
+// 	// Кастомная обработка NOTICE
+// 	fmt.Printf("[CUSTOM NOTICE] Severity: %s, Message: %s\n", notice.Severity, notice.Message)
+// 	if notice.Detail != "" {
+// 		fmt.Printf("  Detail: %s\n", notice.Detail)
+// 	}
+// 	if notice.Hint != "" {
+// 		fmt.Printf("  Hint: %s\n", notice.Hint)
+// 	}
+// 	if notice.Where != "" {
+// 		fmt.Printf("  Where: %s\n", notice.Where)
+// 	}
+// }
 
 type DB struct {
 	log    *log.Logger
@@ -73,7 +92,20 @@ func New(cfg *DBConfig) (*DB, error) {
 	case MSSQL:
 		dbIntr = NewMSSQL(connectionString)
 	case PostgreSQL:
-		dbIntr = NewPostgreSQL(connectionString)
+		pgIntr := NewPostgreSQL(connectionString)
+
+		// Настройка логгера для NOTICE (если передан)
+		if noticeLogFile, ok := (*cfg)["noticeLogFile"].(*os.File); ok {
+			noticeLogger := log.New(noticeLogFile, "[PG-NOTICE] ", log.Ldate|log.Lmicroseconds)
+			pgIntr.SetNoticeLogger(noticeLogger)
+		}
+
+		// Или кастомный обработчик для NOTICE
+		if noticeHandler, ok := (*cfg)["noticeHandler"].(func(notice *PgNotice)); ok {
+			pgIntr.SetNoticeHandler(noticeHandler)
+		}
+
+		dbIntr = pgIntr
 	case SQLite:
 		dbIntr = NewSQLite(connectionString)
 	case Mock:
